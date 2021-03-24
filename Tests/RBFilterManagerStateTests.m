@@ -87,7 +87,8 @@
                 NSTimeInterval actualDays = actualTimeInterval / (60*60*24);
                 XCTAssertTrue(actualDays >= 28 && actualDays < 32, @"%f", actualDays);
             } else {
-                XCTAssertGreaterThanOrEqual(actualTimeInterval, timeInterval, @"%@ %@", NSStringFromRBSynchronizeInterval([intervalNum intValue]), _state.nextSynchronizeDate);
+                XCTAssertGreaterThanOrEqual(actualTimeInterval, 0.99 * timeInterval, @"%@ %@", NSStringFromRBSynchronizeInterval([intervalNum intValue]), _state.nextSynchronizeDate);
+                XCTAssertLessThanOrEqual(actualTimeInterval, 1.01 * timeInterval, @"%@ %@", NSStringFromRBSynchronizeInterval([intervalNum intValue]), _state.nextSynchronizeDate);
             }
         }
     }
