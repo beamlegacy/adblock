@@ -10,7 +10,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-NS_SWIFT_NAME(Database.Entry)
+NS_SWIFT_NAME(RBWhitelistEntry)
 @interface RBWhitelistEntry : NSObject
 @property(nonatomic,readonly,getter=isEnabled) BOOL enabled;
 @property(nonatomic,readonly) NSString *domain;
@@ -20,7 +20,7 @@ NS_SWIFT_NAME(Database.Entry)
 @property(nonatomic,readonly) BOOL existsInStore;
 @end
 
-NS_SWIFT_NAME(Database.MutableEntry)
+NS_SWIFT_NAME(RBMutableWhitelistEntry)
 @interface RBMutableWhitelistEntry : RBWhitelistEntry
 @property(nonatomic,getter=isEnabled) BOOL enabled;
 @property(nonatomic,nullable) NSArray *groupNames;

@@ -15,6 +15,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface RBContentBlocker : NSObject
 
+- (instancetype)init NS_UNAVAILABLE;
 - (instancetype)initWithFilterGroup:(RBFilterGroup *)filterGroup whitelist:(RBDatabase *)whitelist NS_DESIGNATED_INITIALIZER;
 
 @property(nonatomic,readonly) RBFilterGroup *filterGroup;

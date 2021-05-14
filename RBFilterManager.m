@@ -182,7 +182,7 @@
         // Remove old filters and update state
         NSMutableSet *removedFilters = [NSMutableSet setWithArray:cachedFilters];
         [removedFilters minusSet:[NSSet setWithArray:synchronizedFilters]];
-        NSLog(@"%d synchronizedFilters before removal", synchronizedFilters.count);
+//        NSLog(@"%d synchronizedFilters before removal", synchronizedFilters.count);
 
         for (RBFilter *removedFilter in removedFilters) {
             NSURL *removedFilterURL = [self._filterRulesDirectoryURL URLByAppendingPathComponent:removedFilter.uniqueIdentifier];
