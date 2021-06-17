@@ -53,13 +53,13 @@ static _RBContentBlockerRules dummyRules;
     _tempDirectoryURL = RBCreateTemporaryDirectory(NULL);
     
     RBFilterGroup *mockGroup = [[RBFilterGroup alloc] _initWithFileURL:[_tempDirectoryURL URLByAppendingPathComponent:@"group.json"]];
-    RBDatabase *whitelist = [[RBDatabase alloc] initWithFileURL:[_tempDirectoryURL URLByAppendingPathComponent:@"whitelist"]];
-    _contentBlocker = [[RBContentBlocker alloc] initWithFilterGroup:mockGroup whitelist:whitelist];
+    RBDatabase *allowList = [[RBDatabase alloc] initWithFileURL:[_tempDirectoryURL URLByAppendingPathComponent:@"allowList"]];
+    _contentBlocker = [[RBContentBlocker alloc] initWithFilterGroup:mockGroup allowList:allowList];
     _contentBlocker.rulesFileURL = [_tempDirectoryURL URLByAppendingPathComponent:@"rules.json"];
 }
 
 - (void)tearDown {
-    [_contentBlocker.whitelist _drainPool];
+    [_contentBlocker.allowList _drainPool];
     
     NSError *error = nil;
     [[NSFileManager defaultManager] removeItemAtURL:_tempDirectoryURL error:&error];
@@ -93,19 +93,19 @@ static _RBContentBlockerRules dummyRules;
     
     [self waitForExpectationsWithTimeout:1 handler:nil];
     
-    // Whitelist should have no effect (whitelist is inclusive to rules)
-    XCTestExpectation *whitelist = [self expectationWithDescription:@"whitelist"];
-    [_contentBlocker.whitelist writeWhitelistEntryForDomain:@"yolo.com" usingBlock:^(RBMutableWhitelistEntry *entry, BOOL *stop) {
+    // allowList should have no effect (allowList is inclusive to rules)
+    XCTestExpectation *allowList = [self expectationWithDescription:@"allowList"];
+    [_contentBlocker.allowList writeAllowlistEntryForDomain:@"yolo.com" usingBlock:^(RBMutableAllowlistEntry *entry, BOOL *stop) {
         XCTAssertFalse(entry.existsInStore);
         entry.groupNames = @[self->_contentBlocker.filterGroup.name];
-    } completionHandler:^(RBWhitelistEntry *entry, NSError *error) {
+    } completionHandler:^(RBAllowlistEntry *entry, NSError *error) {
         XCTAssertNotNil(entry, @"%@", error);
-        [whitelist fulfill];
+        [allowList fulfill];
     }];
     
     [self waitForExpectationsWithTimeout:1 handler:nil];
 
-    load = [self expectationWithDescription:@"load with whitelist"];
+    load = [self expectationWithDescription:@"load with allowList"];
     
     [self _readRulesUsingBlock:^(_RBContentBlockerRules rules, NSError *error) {
         XCTAssertEqualObjects(rules, placeholderRules, @"%@", error);
@@ -115,7 +115,7 @@ static _RBContentBlockerRules dummyRules;
     [self waitForExpectationsWithTimeout:1 handler:nil];
 }
 
-- (void)testWithoutWhitelist {
+- (void)testWithoutAllowlist {
     NSError *error = nil;
     NSData *existingRuleData = [NSJSONSerialization dataWithJSONObject:dummyRules options:0 error:&error];
     XCTAssertNotNil(existingRuleData, @"%@", error);
@@ -133,27 +133,27 @@ static _RBContentBlockerRules dummyRules;
 }
 
 - (void)testMaxRules {
-    NSArray *whitelistDomains = @[@"aaa.com", @"bbb.com", @"ccc.com"];
-    XCTestExpectation *whitelist = [self expectationWithDescription:@"whitelist"];
-    whitelist.expectedFulfillmentCount = whitelistDomains.count;
+    NSArray *allowlistDomains = @[@"aaa.com", @"bbb.com", @"ccc.com"];
+    XCTestExpectation *allowList = [self expectationWithDescription:@"allowList"];
+    allowList.expectedFulfillmentCount = allowlistDomains.count;
     
     NSUInteger idx = 0;
-    for (NSString *domain in whitelistDomains) {
+    for (NSString *domain in allowlistDomains) {
         BOOL enabled = idx++ % 2 == 0;
         
-        [_contentBlocker.whitelist writeWhitelistEntryForDomain:domain usingBlock:^(RBMutableWhitelistEntry *entry, BOOL *stop) {
+        [_contentBlocker.allowList writeAllowlistEntryForDomain:domain usingBlock:^(RBMutableAllowlistEntry *entry, BOOL *stop) {
             XCTAssertFalse(entry.existsInStore);
             entry.enabled = enabled;
-        } completionHandler:^(RBWhitelistEntry *entry, NSError *error) {
+        } completionHandler:^(RBAllowlistEntry *entry, NSError *error) {
             XCTAssertNotNil(entry, @"%@", error);
-            [whitelist fulfill];
+            [allowList fulfill];
         }];
     }
     
     [self waitForExpectationsWithTimeout:1 handler:nil];
 
-    _contentBlocker.maxNumberOfRules = dummyRules.count + whitelistDomains.count - 1;
-    _contentBlocker.whitelistGroupSize = 1;
+    _contentBlocker.maxNumberOfRules = dummyRules.count + allowlistDomains.count - 1;
+    _contentBlocker.allowListGroupSize = 1;
     
     NSError *error = nil;
     NSData *existingRuleData = [NSJSONSerialization dataWithJSONObject:dummyRules options:0 error:&error];
@@ -163,7 +163,7 @@ static _RBContentBlockerRules dummyRules;
     XCTestExpectation *read = [self expectationWithDescription:@"read"];
     [self _readRulesUsingBlock:^(_RBContentBlockerRules rules, NSError *error) {
         XCTAssertNotNil(rules, @"%@", error);
-        XCTAssertLessThan(rules.count, dummyRules.count + whitelistDomains.count);
+        XCTAssertLessThan(rules.count, dummyRules.count + allowlistDomains.count);
         XCTAssertEqual(rules.count, self->_contentBlocker.maxNumberOfRules);
 
         [read fulfill];
@@ -172,11 +172,11 @@ static _RBContentBlockerRules dummyRules;
     [self waitForExpectationsWithTimeout:1 handler:nil];
 }
 
-- (void)testWhitelistUniformEntries {
+- (void)testAllowlistUniformEntries {
     NSArray *domains = @[@"cAsE.cOm", @"🔥"];
     
-    XCTestExpectation *whitelist = [self expectationWithDescription:@"whitelist"];
-    whitelist.expectedFulfillmentCount = domains.count;
+    XCTestExpectation *allowList = [self expectationWithDescription:@"allowList"];
+    allowList.expectedFulfillmentCount = domains.count;
     
     // Insert domains synchronously to preserve ordering
     __block void(^insertDomain)(NSEnumerator *enumerator) = nil;
@@ -187,13 +187,13 @@ static _RBContentBlockerRules dummyRules;
             return;
         }
         
-        [self->_contentBlocker.whitelist writeWhitelistEntryForDomain:domain usingBlock:^(RBMutableWhitelistEntry *entry, BOOL *stop) {
+        [self->_contentBlocker.allowList writeAllowlistEntryForDomain:domain usingBlock:^(RBMutableAllowlistEntry *entry, BOOL *stop) {
             XCTAssertFalse(entry.existsInStore);
             entry.groupNames = @[self->_contentBlocker.filterGroup.name];
-        } completionHandler:^(RBWhitelistEntry *entry, NSError *error) {
+        } completionHandler:^(RBAllowlistEntry *entry, NSError *error) {
             XCTAssertNotNil(entry, @"%@", error);
             insertDomain(enumerator);
-            [whitelist fulfill];
+            [allowList fulfill];
         }];
     };
     insertDomain(domains.objectEnumerator);
@@ -225,10 +225,10 @@ static _RBContentBlockerRules dummyRules;
     
     // Disable last entry
     XCTestExpectation *disable = [self expectationWithDescription:@"disable"];
-    [_contentBlocker.whitelist writeWhitelistEntryForDomain:domains.lastObject usingBlock:^(RBMutableWhitelistEntry *entry, BOOL *stop) {
+    [_contentBlocker.allowList writeAllowlistEntryForDomain:domains.lastObject usingBlock:^(RBMutableAllowlistEntry *entry, BOOL *stop) {
         XCTAssertTrue(entry.existsInStore);
         entry.enabled = NO;
-    } completionHandler:^(RBWhitelistEntry *entry, NSError *error) {
+    } completionHandler:^(RBAllowlistEntry *entry, NSError *error) {
         XCTAssertNotNil(entry, @"%@", error);
         [disable fulfill];
     }];
@@ -249,21 +249,21 @@ static _RBContentBlockerRules dummyRules;
     [self waitForExpectationsWithTimeout:1 handler:nil];
 }
 
-- (void)testWhitelistDisjointedEntries {
+- (void)testAllowlistDisjointedEntries {
     NSArray *domains = @[@"aaa.com", @"alt-1.domain.com", @"alt-2.domain.com", @"alt-3.domain.com", @"alt-4.domain.com"];
-    XCTestExpectation *whitelist = [self expectationWithDescription:@"whitelist"];
-    whitelist.expectedFulfillmentCount = domains.count;
+    XCTestExpectation *allowList = [self expectationWithDescription:@"allowList"];
+    allowList.expectedFulfillmentCount = domains.count;
     
     NSUInteger idx = 0;
     for (NSString *domain in domains) {
         BOOL enabled = idx++ % 2 == 0;
         
-        [_contentBlocker.whitelist writeWhitelistEntryForDomain:domain usingBlock:^(RBMutableWhitelistEntry *entry, BOOL *stop) {
+        [_contentBlocker.allowList writeAllowlistEntryForDomain:domain usingBlock:^(RBMutableAllowlistEntry *entry, BOOL *stop) {
             XCTAssertFalse(entry.existsInStore);
             entry.enabled = enabled;
-        } completionHandler:^(RBWhitelistEntry *entry, NSError *error) {
+        } completionHandler:^(RBAllowlistEntry *entry, NSError *error) {
             XCTAssertNotNil(entry, @"%@", error);
-            [whitelist fulfill];
+            [allowList fulfill];
         }];
     }
     
@@ -287,7 +287,7 @@ static _RBContentBlockerRules dummyRules;
     
     XCTestExpectation *enableRoot = [self expectationWithDescription:@"enable root"];
     
-    [_contentBlocker.whitelist writeWhitelistEntryForDomain:@"domain.com" usingBlock:nil completionHandler:^(RBWhitelistEntry *entry, NSError *error) {
+    [_contentBlocker.allowList writeAllowlistEntryForDomain:@"domain.com" usingBlock:nil completionHandler:^(RBAllowlistEntry *entry, NSError *error) {
         XCTAssertNotNil(entry, @"%@", error);
         [enableRoot fulfill];
     }];

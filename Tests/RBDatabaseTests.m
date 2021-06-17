@@ -48,13 +48,13 @@
     _database = nil;
 }
 
-- (void)testWhitelistAddEntry {
+- (void)testAllowlistAddEntry {
     NSString *domain = [NSStringFromSelector(_cmd) stringByAppendingString:@".app"];
     XCTestExpectation *add = [self expectationWithDescription:@"add"];
     
-    [_database writeWhitelistEntryForDomain:domain usingBlock:^(RBMutableWhitelistEntry *entry, BOOL *stop) {
+    [_database writeAllowlistEntryForDomain:domain usingBlock:^(RBMutableAllowlistEntry *entry, BOOL *stop) {
         entry.groupNames = @[@"ads", @"privacy"];
-    } completionHandler:^(RBWhitelistEntry *entry, NSError *error) {
+    } completionHandler:^(RBAllowlistEntry *entry, NSError *error) {
         XCTAssertNotNil(entry, @"%@", error);
         XCTAssertEqualObjects(entry.domain, domain);
         XCTAssertNotNil(entry.dateCreated);
@@ -69,19 +69,19 @@
     XCTestExpectation *groupEntries = [self expectationWithDescription:@"entries"];
     groupEntries.expectedFulfillmentCount = 3;
     
-    [_database whitelistEntryEnumeratorForGroup:_adGroup.name domain:nil sortOrder:0 completionHandler:^(NSEnumerator<RBWhitelistEntry *> *entries, NSError *error) {
+    [_database allowlistEntryEnumeratorForGroup:_adGroup.name domain:nil sortOrder:0 completionHandler:^(NSEnumerator<RBAllowlistEntry *> *entries, NSError *error) {
         XCTAssertNotNil(entries, @"%@", error);
         XCTAssertEqualObjects([entries.nextObject domain], domain);
         [groupEntries fulfill];
     }];
     
-    [_database whitelistEntryEnumeratorForGroup:_privacyGroup.name domain:nil sortOrder:0 completionHandler:^(NSEnumerator<RBWhitelistEntry *> *entries, NSError *error) {
+    [_database allowlistEntryEnumeratorForGroup:_privacyGroup.name domain:nil sortOrder:0 completionHandler:^(NSEnumerator<RBAllowlistEntry *> *entries, NSError *error) {
         XCTAssertNotNil(entries, @"%@", error);
         XCTAssertEqualObjects([entries.nextObject domain], domain);
         [groupEntries fulfill];
     }];
     
-    [_database whitelistEntryEnumeratorForGroup:_emptyGroup.name domain:nil sortOrder:0 completionHandler:^(NSEnumerator<RBWhitelistEntry *> *entries, NSError *error) {
+    [_database allowlistEntryEnumeratorForGroup:_emptyGroup.name domain:nil sortOrder:0 completionHandler:^(NSEnumerator<RBAllowlistEntry *> *entries, NSError *error) {
         XCTAssertNotNil(entries, @"%@", error);
         XCTAssertNil(entries.nextObject);
         [groupEntries fulfill];
@@ -90,13 +90,13 @@
     [self waitForExpectationsWithTimeout:1 handler:nil];
 }
 
-- (void)testWhitelistAddDuplicateEntry {
+- (void)testAllowlistAddDuplicateEntry {
     NSString *domain = [NSStringFromSelector(_cmd) stringByAppendingString:@".app"];
     XCTestExpectation *add = [self expectationWithDescription:@"add"];
     
-    [_database writeWhitelistEntryForDomain:domain usingBlock:^(RBMutableWhitelistEntry *entry, BOOL *stop) {
+    [_database writeAllowlistEntryForDomain:domain usingBlock:^(RBMutableAllowlistEntry *entry, BOOL *stop) {
         entry.groupNames = @[@"ads", @"privacy"];
-    } completionHandler:^(RBWhitelistEntry *entry, NSError *error) {
+    } completionHandler:^(RBAllowlistEntry *entry, NSError *error) {
         XCTAssertNotNil(entry, @"%@", error);
         XCTAssertEqualObjects(entry.domain, domain);
         XCTAssertNotNil(entry.dateCreated);
@@ -110,9 +110,9 @@
     
     XCTestExpectation *dupe = [self expectationWithDescription:@"add"];
     
-    [_database writeWhitelistEntryForDomain:domain usingBlock:^(RBMutableWhitelistEntry *entry, BOOL *stop) {
+    [_database writeAllowlistEntryForDomain:domain usingBlock:^(RBMutableAllowlistEntry *entry, BOOL *stop) {
         XCTAssertTrue(entry.existsInStore);
-    } completionHandler:^(RBWhitelistEntry *entry, NSError *error) {
+    } completionHandler:^(RBAllowlistEntry *entry, NSError *error) {
         XCTAssertNil(error);
         XCTAssertEqualObjects(entry.domain, domain);
         XCTAssertTrue(([entry.groupNames isEqualToArray:@[@"ads", @"privacy"]]), "%@", entry.groupNames);
@@ -123,14 +123,14 @@
     [self waitForExpectationsWithTimeout:1 handler:nil];
 }
 
-- (void)testWhitelistEntryLookup {
+- (void)testAllowlistEntryLookup {
     NSString *domain = [NSStringFromSelector(_cmd) stringByAppendingString:@".app"];
     XCTestExpectation *lookup = [self expectationWithDescription:@"lookup"];
 
-    [_database writeWhitelistEntryForDomain:domain usingBlock:^(RBMutableWhitelistEntry *entry, BOOL *stop) {
+    [_database writeAllowlistEntryForDomain:domain usingBlock:^(RBMutableAllowlistEntry *entry, BOOL *stop) {
         entry.groupNames = @[@"ads", @"privacy"];
-    } completionHandler:^(RBWhitelistEntry *insertedEntry, NSError *error) {
-        [self->_database whitelistEntryForDomain:domain completionHandler:^(RBWhitelistEntry *entry, NSError *error) {
+    } completionHandler:^(RBAllowlistEntry *insertedEntry, NSError *error) {
+        [self->_database allowlistEntryForDomain:domain completionHandler:^(RBAllowlistEntry *entry, NSError *error) {
             XCTAssertNotNil(entry, @"%@", error);
             XCTAssertEqualObjects(entry.domain, domain);
             XCTAssertNotNil(entry.dateCreated);
@@ -144,13 +144,13 @@
     [self waitForExpectationsWithTimeout:1 handler:nil];
 }
 
-- (void)testWhitelistEntryLookupSubdomain {
+- (void)testAllowlistEntryLookupSubdomain {
     NSString *domain = [NSStringFromSelector(_cmd) stringByAppendingString:@".app"];
     NSString *subdomain = [@"wow." stringByAppendingString:domain];
     
     XCTestExpectation *write = [self expectationWithDescription:@"write"];
 
-    [_database writeWhitelistEntryForDomain:domain usingBlock:nil completionHandler:^(RBWhitelistEntry *entry, NSError *error) {
+    [_database writeAllowlistEntryForDomain:domain usingBlock:nil completionHandler:^(RBAllowlistEntry *entry, NSError *error) {
         XCTAssertNotNil(entry, @"%@", error);
         [write fulfill];
     }];
@@ -160,13 +160,13 @@
     XCTestExpectation *lookup = [self expectationWithDescription:@"lookup"];
     lookup.expectedFulfillmentCount = 2;
     
-    [_database whitelistEntryForDomain:domain completionHandler:^(RBWhitelistEntry *entry, NSError *error) {
+    [_database allowlistEntryForDomain:domain completionHandler:^(RBAllowlistEntry *entry, NSError *error) {
         XCTAssertNotNil(entry, @"%@", error);
         XCTAssertEqualObjects(entry.domain, domain);
         [lookup fulfill];
     }];
 
-    [_database whitelistEntryForDomain:subdomain completionHandler:^(RBWhitelistEntry *entry, NSError *error) {
+    [_database allowlistEntryForDomain:subdomain completionHandler:^(RBAllowlistEntry *entry, NSError *error) {
         XCTAssertNil(entry);
         XCTAssertNil(error);
         [lookup fulfill];
@@ -175,7 +175,7 @@
     [self waitForExpectationsWithTimeout:1 handler:nil];
 }
 
-- (void)testWhitelistEntryEnumeratorSubdomains {
+- (void)testAllowlistEntryEnumeratorSubdomains {
     NSString *rootDomain = [NSStringFromSelector(_cmd) stringByAppendingString:@".app"];
     NSString *otherDomain = [NSStringFromSelector(_cmd) stringByAppendingString:@"Alt.app"];
     NSArray<NSString*> *subdomains = @[[@"wow1." stringByAppendingString:rootDomain], [@"wow2." stringByAppendingString:rootDomain], [@"wow3." stringByAppendingString:rootDomain]];
@@ -184,7 +184,7 @@
     writes.expectedFulfillmentCount = subdomains.count + 2;
     
     for (NSString *domain in [@[rootDomain, otherDomain] arrayByAddingObjectsFromArray:subdomains]) {
-        [_database writeWhitelistEntryForDomain:domain usingBlock:nil completionHandler:^(RBWhitelistEntry *entry, NSError *error) {
+        [_database writeAllowlistEntryForDomain:domain usingBlock:nil completionHandler:^(RBAllowlistEntry *entry, NSError *error) {
             XCTAssertNotNil(entry, @"%@", error);
             [writes fulfill];
         }];
@@ -194,7 +194,7 @@
     
     XCTestExpectation *lookupOther = [self expectationWithDescription:@"lookup other"];
     
-    [_database whitelistEntryEnumeratorForGroup:nil domain:otherDomain sortOrder:RBWhitelistEntrySortOrderCreateDate completionHandler:^(NSEnumerator<RBWhitelistEntry *> *entries, NSError *error) {
+    [_database allowlistEntryEnumeratorForGroup:nil domain:otherDomain sortOrder:RBAllowlistEntrySortOrderCreateDate completionHandler:^(NSEnumerator<RBAllowlistEntry *> *entries, NSError *error) {
         XCTAssertNotNil(entries, @"%@", error);
         XCTAssertEqualObjects([[entries allObjects] valueForKey:@"domain"], @[otherDomain]);
         [lookupOther fulfill];
@@ -204,7 +204,7 @@
     
     XCTestExpectation *lookup = [self expectationWithDescription:@"lookup"];
     
-    [_database whitelistEntryEnumeratorForGroup:nil domain:rootDomain sortOrder:RBWhitelistEntrySortOrderDomain completionHandler:^(NSEnumerator<RBWhitelistEntry *> *entries, NSError *error) {
+    [_database allowlistEntryEnumeratorForGroup:nil domain:rootDomain sortOrder:RBAllowlistEntrySortOrderDomain completionHandler:^(NSEnumerator<RBAllowlistEntry *> *entries, NSError *error) {
         XCTAssertNotNil(entries, @"%@", error);
         XCTAssertEqualObjects([[entries allObjects] valueForKey:@"domain"], [@[rootDomain] arrayByAddingObjectsFromArray:subdomains]);
         [lookup fulfill];
@@ -213,15 +213,15 @@
     [self waitForExpectationsWithTimeout:1 handler:nil];
     
     XCTestExpectation *groups = [self expectationWithDescription:@"read/write group"];
-    [_database writeWhitelistEntryForDomain:rootDomain usingBlock:^(RBMutableWhitelistEntry *entry, BOOL *cancel) {
+    [_database writeAllowlistEntryForDomain:rootDomain usingBlock:^(RBMutableAllowlistEntry *entry, BOOL *cancel) {
         entry.groupNames = @[@"ok"];
-    } completionHandler:^(RBWhitelistEntry *entry, NSError *error) {
+    } completionHandler:^(RBAllowlistEntry *entry, NSError *error) {
         XCTAssertNotNil(entry, @"%@", error);
         
-        [self->_database whitelistEntryEnumeratorForGroup:nil domain:rootDomain sortOrder:RBWhitelistEntrySortOrderDomain completionHandler:^(NSEnumerator<RBWhitelistEntry *> *entryEnumerator, NSError *error) {
+        [self->_database allowlistEntryEnumeratorForGroup:nil domain:rootDomain sortOrder:RBAllowlistEntrySortOrderDomain completionHandler:^(NSEnumerator<RBAllowlistEntry *> *entryEnumerator, NSError *error) {
             XCTAssertNotNil(entryEnumerator, @"%@", error);
             
-            NSArray<RBWhitelistEntry*> *entries = [entryEnumerator allObjects];
+            NSArray<RBAllowlistEntry*> *entries = [entryEnumerator allObjects];
             XCTAssertGreaterThan(entries.count, 2);
             XCTAssertTrue([[entries.firstObject groupNames] isEqualToArray:@[@"ok"]]);
             XCTAssertNil([entries.lastObject groupNames]);
@@ -233,7 +233,7 @@
     [self waitForExpectationsWithTimeout:1 handler:nil];
 }
 
-- (void)testWhitelistEntryEnumeratorSorting {
+- (void)testAllowlistEntryEnumeratorSorting {
     XCTestExpectation *insert = [self expectationWithDescription:@"insert"];
     insert.expectedFulfillmentCount = 9;
     
@@ -259,9 +259,9 @@
                 break;
         }
         
-        [self->_database writeWhitelistEntryForDomain:domain usingBlock:^(RBMutableWhitelistEntry *entry, BOOL *stop) {
+        [self->_database writeAllowlistEntryForDomain:domain usingBlock:^(RBMutableAllowlistEntry *entry, BOOL *stop) {
             entry.groupNames = @[@"ads"];
-        } completionHandler:^(RBWhitelistEntry *entry, NSError *error) {
+        } completionHandler:^(RBAllowlistEntry *entry, NSError *error) {
             XCTAssertNotNil(entry, @"%@", error);
             
             [insertedDomains addObject:entry.domain];
@@ -284,13 +284,13 @@
     XCTestExpectation *lookup = [self expectationWithDescription:@"lookup"];
     lookup.expectedFulfillmentCount = 2;
     
-    [_database whitelistEntryEnumeratorForGroup:nil domain:nil sortOrder:RBWhitelistEntrySortOrderCreateDate completionHandler:^(NSEnumerator<RBWhitelistEntry *> *entries, NSError *error) {
+    [_database allowlistEntryEnumeratorForGroup:nil domain:nil sortOrder:RBAllowlistEntrySortOrderCreateDate completionHandler:^(NSEnumerator<RBAllowlistEntry *> *entries, NSError *error) {
         XCTAssertNotNil(entries, @"%@", error);
         XCTAssertEqualObjects([[entries allObjects] valueForKey:@"domain"], insertedDomains);
         [lookup fulfill];
     }];
     
-    [_database whitelistEntryEnumeratorForGroup:nil domain:nil sortOrder:RBWhitelistEntrySortOrderDomain completionHandler:^(NSEnumerator<RBWhitelistEntry *> *entries, NSError *error) {
+    [_database allowlistEntryEnumeratorForGroup:nil domain:nil sortOrder:RBAllowlistEntrySortOrderDomain completionHandler:^(NSEnumerator<RBAllowlistEntry *> *entries, NSError *error) {
         XCTAssertNotNil(entries, @"%@", error);
         XCTAssertEqualObjects([[entries allObjects] valueForKey:@"domain"], [[insertedDomains reverseObjectEnumerator] allObjects]);
         
@@ -300,11 +300,11 @@
     [self waitForExpectationsWithTimeout:1 handler:nil];
 }
 
-- (void)testWhitelistWildcardGroup {
+- (void)testAllowlistWildcardGroup {
     XCTestExpectation *add = [self expectationWithDescription:@"add"];
     NSString *domain = [NSStringFromSelector(_cmd) stringByAppendingString:@".app"];
 
-    [_database writeWhitelistEntryForDomain:domain usingBlock:nil completionHandler:^(RBWhitelistEntry *entry, NSError *error) {
+    [_database writeAllowlistEntryForDomain:domain usingBlock:nil completionHandler:^(RBAllowlistEntry *entry, NSError *error) {
         XCTAssertNotNil(entry, @"%@", error);
         XCTAssertEqualObjects(entry.domain, domain);
         XCTAssertNotNil(entry.dateCreated);
@@ -318,10 +318,10 @@
 
     XCTestExpectation *enumerate = [self expectationWithDescription:@"enumerate"];
     
-    [_database whitelistEntryEnumeratorForGroup:_adGroup.name domain:nil sortOrder:0 completionHandler:^(NSEnumerator<RBWhitelistEntry *> *entries, NSError *error) {
+    [_database allowlistEntryEnumeratorForGroup:_adGroup.name domain:nil sortOrder:0 completionHandler:^(NSEnumerator<RBAllowlistEntry *> *entries, NSError *error) {
         XCTAssertNotNil(entries, @"%@", error);
         
-        RBWhitelistEntry *entry = entries.nextObject;
+        RBAllowlistEntry *entry = entries.nextObject;
         
         XCTAssertEqualObjects(entry.domain, domain);
         XCTAssertEqual(entry.groupNames, nil);
@@ -332,13 +332,13 @@
     [self waitForExpectationsWithTimeout:1 handler:nil];
 }
 
-- (void)testWhitelistAddBadEntries {
+- (void)testAllowlistAddBadEntries {
     XCTestExpectation *add = [self expectationWithDescription:@"add"];
     add.expectedFulfillmentCount = 2;
     
-    [_database writeWhitelistEntryForDomain:@"" usingBlock:^(RBMutableWhitelistEntry *entry, BOOL *stop) {
+    [_database writeAllowlistEntryForDomain:@"" usingBlock:^(RBMutableAllowlistEntry *entry, BOOL *stop) {
         entry.groupNames = @[@"ads", @"privacy"];
-    } completionHandler:^(RBWhitelistEntry *entry, NSError *error) {
+    } completionHandler:^(RBAllowlistEntry *entry, NSError *error) {
         XCTAssertNil(entry);
         XCTAssertNotNil(error);
         XCTAssertEqualObjects(error.domain, RBSQLiteErrorDomain);
@@ -347,9 +347,9 @@
         [add fulfill];
     }];
     
-    [_database writeWhitelistEntryForDomain:@"youngdynasty.net" usingBlock:^(RBMutableWhitelistEntry *entry, BOOL *stop) {
+    [_database writeAllowlistEntryForDomain:@"youngdynasty.net" usingBlock:^(RBMutableAllowlistEntry *entry, BOOL *stop) {
         entry.groupNames = @[];
-    } completionHandler:^(RBWhitelistEntry *entry, NSError *error) {
+    } completionHandler:^(RBAllowlistEntry *entry, NSError *error) {
         XCTAssertNil(entry);
         XCTAssertNotNil(error);
         XCTAssertEqualObjects(error.domain, RBSQLiteErrorDomain);
@@ -361,13 +361,13 @@
     [self waitForExpectationsWithTimeout:1 handler:nil];
 }
 
-- (void)testWhitelistRemoveEntry {
+- (void)testAllowlistRemoveEntry {
     XCTestExpectation *add = [self expectationWithDescription:@"add"];
     NSString *domain = [NSStringFromSelector(_cmd) stringByAppendingString:@".app"];
     
-    [_database writeWhitelistEntryForDomain:domain usingBlock:^(RBMutableWhitelistEntry *entry, BOOL *stop) {
+    [_database writeAllowlistEntryForDomain:domain usingBlock:^(RBMutableAllowlistEntry *entry, BOOL *stop) {
         entry.groupNames = @[@"ads", @"privacy"];
-    } completionHandler:^(RBWhitelistEntry *entry, NSError *error) {
+    } completionHandler:^(RBAllowlistEntry *entry, NSError *error) {
         XCTAssertNotNil(entry, @"%@", error);
         [add fulfill];
     }];
@@ -376,7 +376,7 @@
 
     XCTestExpectation *remove = [self expectationWithDescription:@"add"];
     
-    [_database removeWhitelistEntryForDomain:domain completionHandler:^(NSError *error) {
+    [_database removeAllowlistEntryForDomain:domain completionHandler:^(NSError *error) {
         XCTAssertNil(error, @"%@", error);
 
         [remove fulfill];
@@ -388,7 +388,7 @@
     groupEntries.expectedFulfillmentCount = 3;
     
     for (RBFilterGroup *group in @[_adGroup, _privacyGroup, _emptyGroup]) {
-        [_database whitelistEntryEnumeratorForGroup:group.name domain:nil sortOrder:0 completionHandler:^(NSEnumerator<RBWhitelistEntry *> *entries, NSError *error) {
+        [_database allowlistEntryEnumeratorForGroup:group.name domain:nil sortOrder:0 completionHandler:^(NSEnumerator<RBAllowlistEntry *> *entries, NSError *error) {
             XCTAssertNotNil(entries, @"%@", error);
             XCTAssertNil(entries.nextObject);
             [groupEntries fulfill];
@@ -414,17 +414,17 @@
     [self waitForExpectationsWithTimeout:1 handler:nil];
 }
 
-- (void)testWhitelistUpdateEntry {
+- (void)testAllowlistUpdateEntry {
     XCTestExpectation *add = [self expectationWithDescription:@"add"];
     NSString *domain = [NSStringFromSelector(_cmd) stringByAppendingString:@".app"];
     
     __block NSDate *originalCreationDate = nil;
     __block NSDate *originalModificationDate = nil;
     
-    [_database writeWhitelistEntryForDomain:domain usingBlock:^(RBMutableWhitelistEntry *entry, BOOL *stop) {
+    [_database writeAllowlistEntryForDomain:domain usingBlock:^(RBMutableAllowlistEntry *entry, BOOL *stop) {
         XCTAssertFalse(entry.existsInStore);
         entry.groupNames = @[@"ads", @"privacy"];
-    } completionHandler:^(RBWhitelistEntry *entry, NSError *error) {
+    } completionHandler:^(RBAllowlistEntry *entry, NSError *error) {
         XCTAssertNotNil(entry, @"%@", error);
         originalCreationDate = entry.dateCreated;
         originalModificationDate = entry.dateModified;
@@ -436,10 +436,10 @@
     
     XCTestExpectation *update = [self expectationWithDescription:@"update"];
     
-    [_database writeWhitelistEntryForDomain:domain usingBlock:^(RBMutableWhitelistEntry *entry, BOOL *stop) {
+    [_database writeAllowlistEntryForDomain:domain usingBlock:^(RBMutableAllowlistEntry *entry, BOOL *stop) {
         XCTAssertTrue(entry.existsInStore);
         entry.groupNames = @[@"privacy"];
-    } completionHandler:^(RBWhitelistEntry *entry, NSError *error) {
+    } completionHandler:^(RBAllowlistEntry *entry, NSError *error) {
         XCTAssertNotNil(entry, @"%@", error);
         XCTAssertEqualObjects(originalCreationDate, entry.dateCreated);
         XCTAssertEqual([originalModificationDate compare:entry.dateModified], NSOrderedAscending);
@@ -454,7 +454,7 @@
     
     XCTestExpectation *lookup = [self expectationWithDescription:@"lookup"];
     
-    [_database whitelistEntryForDomain:domain completionHandler:^(RBWhitelistEntry *entry, NSError *error) {
+    [_database allowlistEntryForDomain:domain completionHandler:^(RBAllowlistEntry *entry, NSError *error) {
         XCTAssertEqual(entry, entry);
         XCTAssertTrue(([entry.groupNames isEqualToArray:@[@"privacy"]]), "%@", entry.groupNames);
 
@@ -465,9 +465,9 @@
 
     XCTestExpectation *disable = [self expectationWithDescription:@"disable"];
 
-    [_database writeWhitelistEntryForDomain:domain usingBlock:^(RBMutableWhitelistEntry *entry, BOOL *stop) {
+    [_database writeAllowlistEntryForDomain:domain usingBlock:^(RBMutableAllowlistEntry *entry, BOOL *stop) {
         entry.enabled = NO;
-    } completionHandler:^(RBWhitelistEntry *entry, NSError *error) {
+    } completionHandler:^(RBAllowlistEntry *entry, NSError *error) {
         XCTAssertFalse(entry.isEnabled);
         [disable fulfill];
     }];
@@ -475,13 +475,13 @@
     [self waitForExpectationsWithTimeout:1 handler:nil];
 }
 
-- (void)testWhitelistUpdateBadEntries {
+- (void)testAllowlistUpdateBadEntries {
     XCTestExpectation *add = [self expectationWithDescription:@"add"];
     NSString *domain = [NSStringFromSelector(_cmd) stringByAppendingString:@".app"];
 
-    [_database writeWhitelistEntryForDomain:domain usingBlock:^(RBMutableWhitelistEntry *entry, BOOL *stop) {
+    [_database writeAllowlistEntryForDomain:domain usingBlock:^(RBMutableAllowlistEntry *entry, BOOL *stop) {
         entry.groupNames = @[@"ads", @"privacy"];
-    } completionHandler:^(RBWhitelistEntry *entry, NSError *error) {
+    } completionHandler:^(RBAllowlistEntry *entry, NSError *error) {
         XCTAssertNotNil(entry, @"%@", error);
         [add fulfill];
     }];
@@ -490,9 +490,9 @@
 
     XCTestExpectation *update = [self expectationWithDescription:@"update"];
     
-    [_database writeWhitelistEntryForDomain:domain usingBlock:^(RBMutableWhitelistEntry *entry, BOOL *stop) {
+    [_database writeAllowlistEntryForDomain:domain usingBlock:^(RBMutableAllowlistEntry *entry, BOOL *stop) {
         entry.groupNames = @[];
-    } completionHandler:^(RBWhitelistEntry *newEntry, NSError *error) {
+    } completionHandler:^(RBAllowlistEntry *newEntry, NSError *error) {
         XCTAssertNil(newEntry);
         XCTAssertNotNil(error);
         XCTAssertEqualObjects(error.domain, RBSQLiteErrorDomain);
@@ -504,13 +504,13 @@
     [self waitForExpectationsWithTimeout:1 handler:nil];
 }
 
-- (void)testWhitelistWriteCancel {
+- (void)testAllowlistWriteCancel {
     XCTestExpectation *update = [self expectationWithDescription:@"update"];
     
-    [_database writeWhitelistEntryForDomain:[[NSUUID UUID] UUIDString] usingBlock:^(RBMutableWhitelistEntry *entry, BOOL *stop) {
+    [_database writeAllowlistEntryForDomain:[[NSUUID UUID] UUIDString] usingBlock:^(RBMutableAllowlistEntry *entry, BOOL *stop) {
         XCTAssertFalse(entry.existsInStore);
         (*stop) = YES;
-    } completionHandler:^(RBWhitelistEntry *entry, NSError *error) {
+    } completionHandler:^(RBAllowlistEntry *entry, NSError *error) {
         XCTAssertNil(entry);
         XCTAssertNil(error);
 
@@ -520,43 +520,43 @@
     [self waitForExpectationsWithTimeout:1 handler:nil];
 }
 
-- (void)testWhitelistNotifications {
-    RBDatabase *otherWhitelist = [[RBDatabase alloc] initWithFileURL:_database.fileURL];
+- (void)testAllowlistNotifications {
+    RBDatabase *otherAllowlist = [[RBDatabase alloc] initWithFileURL:_database.fileURL];
     NSString *domain = [NSStringFromSelector(_cmd) stringByAppendingString:@".app"];
     
     [self expectationForNotification:RBDatabaseDidAddEntryNotification object:_database handler:^BOOL(NSNotification *notification) {
-        XCTAssertEqualObjects(notification.userInfo[RBWhitelistEntryDomainKey], domain);
+        XCTAssertEqualObjects(notification.userInfo[RBAllowlistEntryDomainKey], domain);
         XCTAssertEqualObjects(notification.userInfo[RBDatabaseLocalModificationKey], @(YES));
         return YES;
     }];
     
-    [self expectationForNotification:RBDatabaseDidAddEntryNotification object:otherWhitelist handler:^BOOL(NSNotification *notification) {
-        XCTAssertEqualObjects(notification.userInfo[RBWhitelistEntryDomainKey], domain);
+    [self expectationForNotification:RBDatabaseDidAddEntryNotification object:otherAllowlist handler:^BOOL(NSNotification *notification) {
+        XCTAssertEqualObjects(notification.userInfo[RBAllowlistEntryDomainKey], domain);
         XCTAssertEqualObjects(notification.userInfo[RBDatabaseLocalModificationKey], @(NO));
         return YES;
     }];
     
-    [_database writeWhitelistEntryForDomain:domain usingBlock:^(RBMutableWhitelistEntry *entry, BOOL *stop) {
+    [_database writeAllowlistEntryForDomain:domain usingBlock:^(RBMutableAllowlistEntry *entry, BOOL *stop) {
         entry.groupNames = @[@"ads", @"privacy"];
-    } completionHandler:^(RBWhitelistEntry *entry, NSError *error) {
+    } completionHandler:^(RBAllowlistEntry *entry, NSError *error) {
         XCTAssertNotNil(entry, @"%@", error);
     }];
     
     [self waitForExpectationsWithTimeout:1 handler:nil];
 
     [self expectationForNotification:RBDatabaseDidUpdateEntryNotification object:_database handler:^BOOL(NSNotification *notification) {
-        return [notification.userInfo[RBDatabaseLocalModificationKey] boolValue] && [notification.userInfo[RBWhitelistEntryDomainKey] isEqualToString:domain];
+        return [notification.userInfo[RBDatabaseLocalModificationKey] boolValue] && [notification.userInfo[RBAllowlistEntryDomainKey] isEqualToString:domain];
     }];
     
-    [self expectationForNotification:RBDatabaseDidUpdateEntryNotification object:otherWhitelist handler:^BOOL(NSNotification *notification) {
-        XCTAssertEqualObjects(notification.userInfo[RBWhitelistEntryDomainKey], domain);
+    [self expectationForNotification:RBDatabaseDidUpdateEntryNotification object:otherAllowlist handler:^BOOL(NSNotification *notification) {
+        XCTAssertEqualObjects(notification.userInfo[RBAllowlistEntryDomainKey], domain);
         XCTAssertEqualObjects(notification.userInfo[RBDatabaseLocalModificationKey], @(NO));
         return YES;
     }];
     
-    [_database writeWhitelistEntryForDomain:domain usingBlock:^(RBMutableWhitelistEntry *entry, BOOL *stop) {
+    [_database writeAllowlistEntryForDomain:domain usingBlock:^(RBMutableAllowlistEntry *entry, BOOL *stop) {
         entry.groupNames = @[@"ads"];
-    } completionHandler:^(RBWhitelistEntry *newEntry, NSError *error) {
+    } completionHandler:^(RBAllowlistEntry *newEntry, NSError *error) {
         XCTAssertNil(error);
         XCTAssertTrue(([newEntry.groupNames isEqualToArray:@[@"ads"]]), "%@", newEntry.groupNames);
     }];
@@ -564,21 +564,21 @@
     [self waitForExpectationsWithTimeout:1 handler:nil];
 
     [self expectationForNotification:RBDatabaseDidRemoveEntryNotification object:_database handler:^BOOL(NSNotification *notification) {
-        return [notification.userInfo[RBDatabaseLocalModificationKey] boolValue] && [notification.userInfo[RBWhitelistEntryDomainKey] isEqualToString:domain];
+        return [notification.userInfo[RBDatabaseLocalModificationKey] boolValue] && [notification.userInfo[RBAllowlistEntryDomainKey] isEqualToString:domain];
     }];
 
-    [self expectationForNotification:RBDatabaseDidRemoveEntryNotification object:otherWhitelist handler:^BOOL(NSNotification *notification) {
-        return ![notification.userInfo[RBDatabaseLocalModificationKey] boolValue] && [notification.userInfo[RBWhitelistEntryDomainKey] isEqualToString:domain];
+    [self expectationForNotification:RBDatabaseDidRemoveEntryNotification object:otherAllowlist handler:^BOOL(NSNotification *notification) {
+        return ![notification.userInfo[RBDatabaseLocalModificationKey] boolValue] && [notification.userInfo[RBAllowlistEntryDomainKey] isEqualToString:domain];
     }];
 
-    [_database removeWhitelistEntryForDomain:domain completionHandler:^(NSError *error) {
+    [_database removeAllowlistEntryForDomain:domain completionHandler:^(NSError *error) {
         XCTAssertNil(error, @"%@", error);
     }];
     
     [self waitForExpectationsWithTimeout:1 handler:nil];
 }
 
-- (void)testWhitelistConcurrency {
+- (void)testAllowlistConcurrency {
     const int numInstances = 3;
     const int numReads = 10;
     const int numWrites = 10;
@@ -602,16 +602,16 @@
         for (int j = 0; j < numWrites; j++) {
             [domains addObject:[[[NSUUID UUID] UUIDString] stringByAppendingString:@".com"]];
             
-            [database writeWhitelistEntryForDomain:[domains lastObject] usingBlock:^(RBMutableWhitelistEntry *entry, BOOL *stop) {
+            [database writeAllowlistEntryForDomain:[domains lastObject] usingBlock:^(RBMutableAllowlistEntry *entry, BOOL *stop) {
                 entry.groupNames = @[@"ads"];
-            } completionHandler:^(RBWhitelistEntry *_, NSError *error) {
+            } completionHandler:^(RBAllowlistEntry *_, NSError *error) {
                 XCTAssertNil(error, @"%d %d %@", i, j, [domains sortedArrayUsingSelector:@selector(compare:)]);
                 [op fulfill];
             }];
         }
 
         for (int j = 0; j < numReads; j++) {
-            [database whitelistEntryEnumeratorForGroup:_adGroup.name domain:nil sortOrder:0 completionHandler:^(NSEnumerator*_, NSError *error) {
+            [database allowlistEntryEnumeratorForGroup:_adGroup.name domain:nil sortOrder:0 completionHandler:^(NSEnumerator*_, NSError *error) {
                 XCTAssertNil(error);
                 [op fulfill];
             }];
@@ -622,7 +622,7 @@
     
     XCTestExpectation *count = [self expectationWithDescription:@"count"];
     
-    [_database whitelistEntryEnumeratorForGroup:_adGroup.name domain:nil sortOrder:0 completionHandler:^(NSEnumerator<RBWhitelistEntry *>*entries, NSError *error) {
+    [_database allowlistEntryEnumeratorForGroup:_adGroup.name domain:nil sortOrder:0 completionHandler:^(NSEnumerator<RBAllowlistEntry *>*entries, NSError *error) {
         XCTAssertNil(error, @"%@", error);
         XCTAssertEqual(entries.allObjects.count, numInstances*numWrites);
         

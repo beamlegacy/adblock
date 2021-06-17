@@ -1,5 +1,5 @@
 //
-//  RBWhitelistEntry.h
+//  RBAllowlistEntry.h
 //  RadBlock
 //
 //  Created by Mike Pulaski on 30/10/2019.
@@ -10,8 +10,8 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-NS_SWIFT_NAME(RBWhitelistEntry)
-@interface RBWhitelistEntry : NSObject
+NS_SWIFT_NAME(RBAllowlistEntry)
+@interface RBAllowlistEntry : NSObject
 @property(nonatomic,readonly,getter=isEnabled) BOOL enabled;
 @property(nonatomic,readonly) NSString *domain;
 @property(nonatomic,readonly,nullable) NSArray *groupNames;
@@ -20,8 +20,8 @@ NS_SWIFT_NAME(RBWhitelistEntry)
 @property(nonatomic,readonly) BOOL existsInStore;
 @end
 
-NS_SWIFT_NAME(RBMutableWhitelistEntry)
-@interface RBMutableWhitelistEntry : RBWhitelistEntry
+NS_SWIFT_NAME(RBMutableAllowlistEntry)
+@interface RBMutableAllowlistEntry : RBAllowlistEntry
 @property(nonatomic,getter=isEnabled) BOOL enabled;
 @property(nonatomic,nullable) NSArray *groupNames;
 @end

@@ -1,31 +1,31 @@
 //
-//  RBWhitelistEntry.m
+//  RBAllowlistEntry.m
 //  RadBlock
 //
 //  Created by Mike Pulaski on 30/10/2019.
 //  Copyright © 2019 Young Dynasty. All rights reserved.
 //
 
-#import "RBWhitelistEntry.h"
-#import "RBWhitelistEntry-Private.h"
+#import "RBAllowlistEntry.h"
+#import "RBAllowlistEntry-Private.h"
 #import "RBSQLite.h"
 #import "RBUtils.h"
 
-@implementation RBWhitelistEntry
+@implementation RBAllowlistEntry
 
 - (id)copyWithZone:(NSZone *)zone {
-    RBWhitelistEntry *entry = [[RBWhitelistEntry alloc] init];
+    RBAllowlistEntry *entry = [[RBAllowlistEntry alloc] init];
     [entry _copyValuesFrom:self];
     return entry;
 }
 
 - (id)mutableCopyWithZone:(NSZone *)zone {
-    RBMutableWhitelistEntry *entry = [[RBMutableWhitelistEntry alloc] init];
+    RBMutableAllowlistEntry *entry = [[RBMutableAllowlistEntry alloc] init];
     [entry _copyValuesFrom:self];
     return entry;
 }
 
-- (void)_copyValuesFrom:(RBWhitelistEntry *)entry {
+- (void)_copyValuesFrom:(RBAllowlistEntry *)entry {
     self.domain = entry.domain;
     self.groupNames = entry.groupNames;
     self.dateCreated = entry.dateCreated;
@@ -39,7 +39,7 @@
 }
 
 - (BOOL)isEqual:(id)object {
-    RBWhitelistEntry *otherEntry = RBKindOfClassOrNil(RBWhitelistEntry, object);
+    RBAllowlistEntry *otherEntry = RBKindOfClassOrNil(RBAllowlistEntry, object);
     if (otherEntry != nil) {
         return [_domain isEqualToString:otherEntry.domain];
     }
@@ -54,7 +54,7 @@
 
 @end
 
-@implementation RBMutableWhitelistEntry
+@implementation RBMutableAllowlistEntry
 @dynamic groupNames, enabled;
 
 - (void)setGroupNames:(NSArray *)groupNames { [super _setGroupNames:groupNames]; }
