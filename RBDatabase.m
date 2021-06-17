@@ -9,7 +9,7 @@
 #import <sqlite3.h>
 
 #import "RBDatabase-Private.h"
-#import "RBWhitelistEntry-Private.h"
+#import "RBAllowlistEntry-Private.h"
 #import "RBStat-Private.h"
 
 #import "RBFilterGroup.h"
@@ -24,7 +24,7 @@
 #endif
 
 
-@interface RBWhitelistEntry(SQLite)
+@interface RBAllowlistEntry(SQLite)
 + (NSEnumerator *)_enumeratorForStatement:(sqlite3_stmt*)stmt;
 @end
 
@@ -88,17 +88,17 @@
     RBSQLitePoolFree(_pool);
 }
 
-#pragma mark - Whitelist
+#pragma mark - allowList
 
-- (void)whitelistEntryForDomain:(NSString *)domain completionHandler:(void(^)(RBWhitelistEntry *__nullable, NSError *__nullable))completionHandler {
+- (void)allowlistEntryForDomain:(NSString *)domain completionHandler:(void(^)(RBAllowlistEntry *__nullable, NSError *__nullable))completionHandler {
     [self _accessConnectionUsingBlock:^(sqlite3 *conn) {
         NSError *error = nil;
-        RBWhitelistEntry *entry = [self _whitelistEntryForDomain:domain conn:conn error:&error];
+        RBAllowlistEntry *entry = [self _allowlistEntryForDomain:domain conn:conn error:&error];
         completionHandler(entry, nil);
     }];
 }
 
-- (RBWhitelistEntry *)_whitelistEntryForDomain:(NSString *)domain conn:(sqlite3 *)conn error:(NSError **)outError {
+- (RBAllowlistEntry *)_allowlistEntryForDomain:(NSString *)domain conn:(sqlite3 *)conn error:(NSError **)outError {
     dispatch_assert_queue(_q);
     
     sqlite3_stmt *stmt = NULL;
@@ -110,10 +110,10 @@
                                  ORDER BY length(domain) DESC, domain, exception_group.name \
                                  ", _normalizeDomain(domain));
     
-    RBWhitelistEntry *entry = nil;
+    RBAllowlistEntry *entry = nil;
     
     if (status == SQLITE_OK) {
-        entry = [[RBWhitelistEntry _enumeratorForStatement:stmt] nextObject];
+        entry = [[RBAllowlistEntry _enumeratorForStatement:stmt] nextObject];
     }
     
     if (outError != NULL) {
@@ -125,7 +125,7 @@
     return entry;
 }
 
-- (void)whitelistEntryEnumeratorForGroup:(nullable NSString *)group domain:(nullable NSString *)domain sortOrder:(RBWhitelistEntrySortOrder)sortOrder completionHandler:(void(^)(NSEnumerator<RBWhitelistEntry*>*,NSError *))completionHandler {
+- (void)allowlistEntryEnumeratorForGroup:(nullable NSString *)group domain:(nullable NSString *)domain sortOrder:(RBAllowlistEntrySortOrder)sortOrder completionHandler:(void(^)(NSEnumerator<RBAllowlistEntry*>*,NSError *))completionHandler {
     [self _accessConnectionUsingBlock:^(sqlite3 *conn) {
         sqlite3_stmt *stmt = NULL;
         
@@ -141,13 +141,13 @@
                                                    AND ($2 IS NULL OR domain = $2 OR in_domain($2, domain)) \
                                                    AND exception_group.exception_domain = domain \
                                                    GROUP BY domain \
-                                                   ORDER BY " stringByAppendingString:sortOrder == RBWhitelistEntrySortOrderCreateDate
+                                                   ORDER BY " stringByAppendingString:sortOrder == RBAllowlistEntrySortOrderCreateDate
                                                                                        ? @"exception.create_date"
                                                                                        : @"root_domain(exception.domain), length(exception.domain), exception.domain"
                                                    ], group, domain);
 
         if (status == SQLITE_OK) {
-            completionHandler([RBWhitelistEntry _enumeratorForStatement:stmt], nil);
+            completionHandler([RBAllowlistEntry _enumeratorForStatement:stmt], nil);
         } else {
             completionHandler(nil, NSErrorFromSQLiteStatus(status));
         }
@@ -156,11 +156,11 @@
     }];
 }
 
-- (void)writeWhitelistEntryForDomain:(NSString *)domain usingBlock:(void(^)(RBMutableWhitelistEntry*, BOOL*))block completionHandler:(void(^)(RBWhitelistEntry *__nullable, NSError *__nullable))completionHandler {
+- (void)writeAllowlistEntryForDomain:(NSString *)domain usingBlock:(void(^)(RBMutableAllowlistEntry*, BOOL*))block completionHandler:(void(^)(RBAllowlistEntry *__nullable, NSError *__nullable))completionHandler {
     [self _accessConnectionUsingBlock:^(sqlite3 *conn) {
         __block BOOL existed = NO;
         NSError *error = nil;
-        RBWhitelistEntry *entry = [self _upsertWhitelistEntryForDomain:domain usingBlock:^(RBMutableWhitelistEntry *entry, BOOL *stop) {
+        RBAllowlistEntry *entry = [self _upsertAllowlistEntryForDomain:domain usingBlock:^(RBMutableAllowlistEntry *entry, BOOL *stop) {
             existed = entry.existsInStore;
             if (block != nil) {
                 block(entry, stop);
@@ -179,24 +179,24 @@
     }];
 }
 
-- (RBWhitelistEntry *)_upsertWhitelistEntryForDomain:(NSString *)domain usingBlock:(void(^)(RBMutableWhitelistEntry*, BOOL*))block conn:(sqlite3 *)conn error:(NSError **)outError {
+- (RBAllowlistEntry *)_upsertAllowlistEntryForDomain:(NSString *)domain usingBlock:(void(^)(RBMutableAllowlistEntry*, BOOL*))block conn:(sqlite3 *)conn error:(NSError **)outError {
     dispatch_assert_queue(_q);
     
-    __block RBWhitelistEntry *result = nil;
+    __block RBAllowlistEntry *result = nil;
     __block NSError *error = nil;
     
     int status = SQLITE_OK;
     
     for (int curTry = 0; curTry < 10; curTry++) {
         status = RBSQLiteTransaction(conn, ^int{
-            RBWhitelistEntry *prevEntry = [self _whitelistEntryForDomain:domain conn:conn error:&error];
+            RBAllowlistEntry *prevEntry = [self _allowlistEntryForDomain:domain conn:conn error:&error];
             if (error != nil) {
                 return SQLITE_FAIL;
             }
             
-            RBMutableWhitelistEntry *mutableEntry = nil;
+            RBMutableAllowlistEntry *mutableEntry = nil;
             if (prevEntry == nil) {
-                mutableEntry = [RBMutableWhitelistEntry new];
+                mutableEntry = [RBMutableAllowlistEntry new];
                 mutableEntry.enabled = YES;
                 mutableEntry.domain = domain;
             } else {
@@ -238,7 +238,7 @@
             }
             
             if (status == SQLITE_DONE) {
-                result = [self _whitelistEntryForDomain:domain conn:conn error:&error];
+                result = [self _allowlistEntryForDomain:domain conn:conn error:&error];
             }
             
             return status;
@@ -258,14 +258,14 @@
     return result;
 }
 
-- (void)removeWhitelistEntryForDomain:(NSString *)domain completionHandler:(void (^)(NSError * _Nonnull))completionHandler {
-    [self removeWhitelistEntriesForDomains:@[domain] completionHandler:completionHandler];
+- (void)removeAllowlistEntryForDomain:(NSString *)domain completionHandler:(void (^)(NSError * _Nonnull))completionHandler {
+    [self removeAllowlistEntriesForDomains:@[domain] completionHandler:completionHandler];
 }
 
-- (void)removeWhitelistEntriesForDomains:(NSArray *)domains completionHandler:(void (^)(NSError * _Nullable))completionHandler {
+- (void)removeAllowlistEntriesForDomains:(NSArray *)domains completionHandler:(void (^)(NSError * _Nullable))completionHandler {
     [self _accessConnectionUsingBlock:^(sqlite3 *conn) {
         NSError *error = nil;
-        NSArray *removedDomains = [self _removeWhitelistEntriesForDomains:domains conn:conn error:&error];
+        NSArray *removedDomains = [self _removeAllowlistEntriesForDomains:domains conn:conn error:&error];
         
         if (removedDomains != nil) {
             for (NSString *domain in removedDomains) {
@@ -277,7 +277,7 @@
     }];
 }
 
-- (NSArray<NSString *> *)_removeWhitelistEntriesForDomains:(NSArray<NSString*> *)domains conn:(sqlite3 *)conn error:(NSError **)outError {
+- (NSArray<NSString *> *)_removeAllowlistEntriesForDomains:(NSArray<NSString*> *)domains conn:(sqlite3 *)conn error:(NSError **)outError {
     dispatch_assert_queue(_q);
     
     sqlite3_stmt *stmt = NULL;
@@ -526,12 +526,12 @@ NSNotificationName RBDatabaseDidAddEntryNotification = @"RBDatabaseDidAddEntryNo
 NSNotificationName RBDatabaseDidUpdateEntryNotification = @"RBDatabaseDidUpdateEntryNotification";
 NSNotificationName RBDatabaseDidRemoveEntryNotification = @"RBDatabaseDidRemoveEntryNotification";
 
-NSString *const RBWhitelistEntryDomainKey = @"RBWhitelistEntryDomainKey";
+NSString *const RBAllowlistEntryDomainKey = @"RBAllowlistEntryDomainKey";
 NSString *const RBDatabaseLocalModificationKey = @"RBDatabaseLocalModificationKey";
 
 - (void)_didAddEntryForDomain:(NSString *)domain {
     [[NSNotificationCenter defaultCenter] postNotificationName:RBDatabaseDidAddEntryNotification object:self userInfo:@{
-        RBWhitelistEntryDomainKey: domain,
+        RBAllowlistEntryDomainKey: domain,
         RBDatabaseLocalModificationKey: @(YES)
     }];
     
@@ -540,7 +540,7 @@ NSString *const RBDatabaseLocalModificationKey = @"RBDatabaseLocalModificationKe
 
 - (void)_didRemoveEntryForDomain:(NSString *)domain {
     [[NSNotificationCenter defaultCenter] postNotificationName:RBDatabaseDidRemoveEntryNotification object:self userInfo:@{
-        RBWhitelistEntryDomainKey: domain,
+        RBAllowlistEntryDomainKey: domain,
         RBDatabaseLocalModificationKey: @(YES)
     }];
 
@@ -549,7 +549,7 @@ NSString *const RBDatabaseLocalModificationKey = @"RBDatabaseLocalModificationKe
 
 - (void)_didUpdateEntryForDomain:(NSString *)domain {
     [[NSNotificationCenter defaultCenter] postNotificationName:RBDatabaseDidUpdateEntryNotification object:self userInfo:@{
-        RBWhitelistEntryDomainKey: domain,
+        RBAllowlistEntryDomainKey: domain,
         RBDatabaseLocalModificationKey: @(YES)
     }];
 
@@ -566,7 +566,7 @@ NSString *const RBDatabaseLocalModificationKey = @"RBDatabaseLocalModificationKe
     }
     
     [[NSNotificationCenter defaultCenter] postNotificationName:RBDatabaseDidAddEntryNotification object:self userInfo:@{
-        RBWhitelistEntryDomainKey: domain,
+        RBAllowlistEntryDomainKey: domain,
         RBDatabaseLocalModificationKey: @(NO)
     }];
 }
@@ -581,7 +581,7 @@ NSString *const RBDatabaseLocalModificationKey = @"RBDatabaseLocalModificationKe
     }
     
     [[NSNotificationCenter defaultCenter] postNotificationName:RBDatabaseDidRemoveEntryNotification object:self userInfo:@{
-        RBWhitelistEntryDomainKey: domain,
+        RBAllowlistEntryDomainKey: domain,
         RBDatabaseLocalModificationKey: @(NO)
     }];
 }
@@ -596,7 +596,7 @@ NSString *const RBDatabaseLocalModificationKey = @"RBDatabaseLocalModificationKe
     }
     
     [[NSNotificationCenter defaultCenter] postNotificationName:RBDatabaseDidUpdateEntryNotification object:self userInfo:@{
-        RBWhitelistEntryDomainKey: domain,
+        RBAllowlistEntryDomainKey: domain,
         RBDatabaseLocalModificationKey: @(NO)
     }];
 }
@@ -667,16 +667,16 @@ NSString *const RBDatabaseLocalModificationKey = @"RBDatabaseLocalModificationKe
 
 #pragma mark - Scanning
 
-@interface _RBWhitelistEntryEnumerator : NSEnumerator
+@interface _RBAllowlistEntryEnumerator : NSEnumerator
 - (instancetype)initWithStatement:(sqlite3_stmt*)stmt;
 @end
 
-@implementation RBWhitelistEntry(SQLite)
+@implementation RBAllowlistEntry(SQLite)
 + (NSEnumerator *)_enumeratorForStatement:(sqlite3_stmt*)stmt {
-    return [[_RBWhitelistEntryEnumerator alloc] initWithStatement:stmt];
+    return [[_RBAllowlistEntryEnumerator alloc] initWithStatement:stmt];
 }
 + (nullable instancetype)_entryWithStatement:(sqlite3_stmt*)stmt {
-    RBWhitelistEntry *entry = [RBWhitelistEntry new];
+    RBAllowlistEntry *entry = [RBAllowlistEntry new];
     
     entry.domain = RBSQLiteScanString(stmt, 0);
     entry.groupNames = [RBSQLiteScanString(stmt, 1) componentsSeparatedByString:@","];
@@ -694,7 +694,7 @@ NSString *const RBDatabaseLocalModificationKey = @"RBDatabaseLocalModificationKe
 }
 @end
 
-@implementation _RBWhitelistEntryEnumerator {
+@implementation _RBAllowlistEntryEnumerator {
     sqlite3_stmt *_stmt;
     BOOL _isNextNull;
     __weak RBDatabase *_database;
@@ -710,12 +710,12 @@ NSString *const RBDatabaseLocalModificationKey = @"RBDatabaseLocalModificationKe
     return self;
 }
 
-- (nullable RBWhitelistEntry *)nextObject {
+- (nullable RBAllowlistEntry *)nextObject {
     if (sqlite3_step(_stmt) != SQLITE_ROW) {
         return nil;
     }
     
-    return [RBWhitelistEntry _entryWithStatement:_stmt];
+    return [RBAllowlistEntry _entryWithStatement:_stmt];
 }
 
 @end

@@ -16,14 +16,14 @@ NS_ASSUME_NONNULL_BEGIN
 @interface RBContentBlocker : NSObject
 
 - (instancetype)init NS_UNAVAILABLE;
-- (instancetype)initWithFilterGroup:(RBFilterGroup *)filterGroup whitelist:(RBDatabase *)whitelist NS_DESIGNATED_INITIALIZER;
+- (instancetype)initWithFilterGroup:(RBFilterGroup *)filterGroup allowList:(RBDatabase *)allowList NS_DESIGNATED_INITIALIZER;
 
 @property(nonatomic,readonly) RBFilterGroup *filterGroup;
-@property(nonatomic,readonly) RBDatabase *whitelist;
+@property(nonatomic,readonly) RBDatabase *allowList;
 
 @property(nonatomic,nonnull) NSURL *rulesFileURL;
 
-@property(nonatomic) NSUInteger whitelistGroupSize;
+@property(nonatomic) NSUInteger allowListGroupSize;
 @property(nonatomic) NSUInteger maxNumberOfRules;
 
 - (void)writeRulesWithCompletionHandler:(void (^)(NSURL *_Nullable, NSError *_Nullable))handler;

@@ -7,7 +7,7 @@
 //
 
 #import "RBContentBlocker.h"
-#import "RBWhitelistEntry.h"
+#import "RBAllowlistEntry.h"
 #import "RBContentBlocker.h"
 #import "NSString+IDNA.h"
 #import "RBDatabase.h"
@@ -15,23 +15,23 @@
 #import "RBFilterGroup.h"
 #import "RBUtils.h"
 
-@interface _RBWhitelistEntryGroupedEnumerator : NSEnumerator
-- (instancetype)initWithEnumerator:(NSEnumerator<RBWhitelistEntry *> *)enumerator;
+@interface _RBAllowlistEntryGroupedEnumerator : NSEnumerator
+- (instancetype)initWithEnumerator:(NSEnumerator<RBAllowlistEntry *> *)enumerator;
 @end
 
 
 @implementation RBContentBlocker
 
-- (instancetype)initWithFilterGroup:(RBFilterGroup *)filterGroup whitelist:(RBDatabase *)whitelist {
+- (instancetype)initWithFilterGroup:(RBFilterGroup *)filterGroup allowList:(RBDatabase *)allowList {
     self = [super init];
     if (self == nil)
         return nil;
     
     _filterGroup = filterGroup;
-    _whitelist = whitelist;
+    _allowList = allowList;
     _rulesFileURL = filterGroup.fileURL;
     _maxNumberOfRules = 50000;
-    _whitelistGroupSize = 200;
+    _allowListGroupSize = 200;
     
     return self;
 }
@@ -70,32 +70,32 @@
         // Assume that the server doesn't allow us to configure rule sets which exceed our limit
         __block NSUInteger ruleCount = self.filterGroup.numberOfRules;
         NSUInteger maxNumberOfRules = self.maxNumberOfRules;
-        NSUInteger whitelistGroupSize = self.whitelistGroupSize;
+        NSUInteger allowlistGroupSize = self.allowListGroupSize;
         
-        // Block until we add our whitelist entries so that the temporary builder doesn't get discarded
+        // Block until we add our allowList entries so that the temporary builder doesn't get discarded
         dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
         
-        [self->_whitelist whitelistEntryEnumeratorForGroup:self.filterGroup.name domain:nil sortOrder:RBWhitelistEntrySortOrderDomain completionHandler:^(NSEnumerator<RBWhitelistEntry *> *entryEnumerator, NSError *error) {
+        [self->_allowList allowlistEntryEnumeratorForGroup:self.filterGroup.name domain:nil sortOrder:RBAllowlistEntrySortOrderDomain completionHandler:^(NSEnumerator<RBAllowlistEntry *> *entryEnumerator, NSError *error) {
             if (error == nil) {
-                NSEnumerator<NSArray<RBWhitelistEntry*>*> *domainEnumerator = [[_RBWhitelistEntryGroupedEnumerator alloc] initWithEnumerator:entryEnumerator];
-                NSArray<RBWhitelistEntry*> *domainGroup = nil;
-                NSMutableArray<RBWhitelistEntry *> *entryBuffer = [NSMutableArray arrayWithCapacity:whitelistGroupSize];
+                NSEnumerator<NSArray<RBAllowlistEntry*>*> *domainEnumerator = [[_RBAllowlistEntryGroupedEnumerator alloc] initWithEnumerator:entryEnumerator];
+                NSArray<RBAllowlistEntry*> *domainGroup = nil;
+                NSMutableArray<RBAllowlistEntry *> *entryBuffer = [NSMutableArray arrayWithCapacity:allowlistGroupSize];
                 
                 while (error == nil && (domainGroup = domainEnumerator.nextObject) && ruleCount < maxNumberOfRules) {
-                    if (_whitelistEntriesAreDisjointed(domainGroup)) {
+                    if (_allowlistEntriesAreDisjointed(domainGroup)) {
                         [builder appendRule:[self _ignoreRuleForDisjointedEntries:domainGroup] error:&error];
                         ruleCount++;
                         continue;
                     }
                     
-                    for (RBWhitelistEntry *entry in domainGroup) {
+                    for (RBAllowlistEntry *entry in domainGroup) {
                         if (!entry.enabled) {
                             continue;
                         }
                         
                         [entryBuffer addObject:entry];
                         
-                        if (entryBuffer.count >= whitelistGroupSize) {
+                        if (entryBuffer.count >= allowlistGroupSize) {
                             [builder appendRule:[self _ignoreRuleForEntries:entryBuffer] error:&error];
                             ruleCount++;
                             [entryBuffer removeAllObjects];
@@ -120,11 +120,11 @@
     }];
 }
 
-- (NSDictionary *)_ignoreRuleForEntries:(NSArray<RBWhitelistEntry*> *)entries {
+- (NSDictionary *)_ignoreRuleForEntries:(NSArray<RBAllowlistEntry*> *)entries {
     NSAssert(entries.count > 0, @"Empty rules can cause unexpected behavior");
     
     NSMutableArray *encodedDomains = [NSMutableArray arrayWithCapacity:entries.count];
-    for (RBWhitelistEntry *entry in entries) {
+    for (RBAllowlistEntry *entry in entries) {
         [encodedDomains addObject:[@"*" stringByAppendingString:entry.domain.idnaEncodedString]];
     }
     
@@ -134,7 +134,7 @@
     };
 }
 
-static BOOL _whitelistEntriesAreDisjointed(NSArray<RBWhitelistEntry *> *entries) {
+static BOOL _allowlistEntriesAreDisjointed(NSArray<RBAllowlistEntry *> *entries) {
     if (entries.count == 0) {
         return NO;
     }
@@ -143,7 +143,7 @@ static BOOL _whitelistEntriesAreDisjointed(NSArray<RBWhitelistEntry *> *entries)
     NSString *encodedRootDomain = RBRootDomain(firstEntryDomain);
     
     if (entries.firstObject.isEnabled && [encodedRootDomain isEqualToString:firstEntryDomain]) {
-        for (RBWhitelistEntry *entry in entries) {
+        for (RBAllowlistEntry *entry in entries) {
             if (!entry.enabled) {
                 return YES;
             }
@@ -153,11 +153,11 @@ static BOOL _whitelistEntriesAreDisjointed(NSArray<RBWhitelistEntry *> *entries)
     return NO;
 }
 
-- (NSDictionary *)_ignoreRuleForDisjointedEntries:(NSArray<RBWhitelistEntry*> *)entries {
+- (NSDictionary *)_ignoreRuleForDisjointedEntries:(NSArray<RBAllowlistEntry*> *)entries {
     NSAssert(entries.count > 0, @"Empty rules can cause unexpected behavior");
     
     NSMutableArray *encodedDomains = [NSMutableArray arrayWithCapacity:entries.count];
-    for (RBWhitelistEntry *entry in entries) {
+    for (RBAllowlistEntry *entry in entries) {
         if (!entry.enabled) {
             [encodedDomains addObject:entry.domain.idnaEncodedString];
         }
@@ -175,13 +175,13 @@ static BOOL _whitelistEntriesAreDisjointed(NSArray<RBWhitelistEntry *> *entries)
 @end
 
 
-@implementation _RBWhitelistEntryGroupedEnumerator {
+@implementation _RBAllowlistEntryGroupedEnumerator {
     NSEnumerator *_original;
-    RBWhitelistEntry *_buffer;
+    RBAllowlistEntry *_buffer;
     BOOL _eof;
 }
 
-- (instancetype)initWithEnumerator:(NSEnumerator<RBWhitelistEntry *> *)enumerator {
+- (instancetype)initWithEnumerator:(NSEnumerator<RBAllowlistEntry *> *)enumerator {
     self = [super init];
     if (self == nil)
         return nil;
@@ -191,12 +191,12 @@ static BOOL _whitelistEntriesAreDisjointed(NSArray<RBWhitelistEntry *> *entries)
     return self;
 }
 
-- (nullable NSArray <RBWhitelistEntry *> *)nextObject {
+- (nullable NSArray <RBAllowlistEntry *> *)nextObject {
     if (_eof) {
         return nil;
     }
     
-    RBWhitelistEntry *currentEntry = _buffer ?: [_original nextObject];
+    RBAllowlistEntry *currentEntry = _buffer ?: [_original nextObject];
     if (currentEntry == nil) {
         return nil;
     }

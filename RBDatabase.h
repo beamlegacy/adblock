@@ -8,7 +8,7 @@
 
 #import <Foundation/Foundation.h>
 
-#import "RBWhitelistEntry.h"
+#import "RBAllowlistEntry.h"
 #import "RBDateRange.h"
 #import "RBStat.h"
 
@@ -19,7 +19,7 @@ NS_ASSUME_NONNULL_BEGIN
 extern NSNotificationName RBDatabaseDidAddEntryNotification;
 extern NSNotificationName RBDatabaseDidUpdateEntryNotification;
 extern NSNotificationName RBDatabaseDidRemoveEntryNotification;
-extern NSString *const RBWhitelistEntryDomainKey;
+extern NSString *const RBAllowlistEntryDomainKey;
 extern NSString *const RBDatabaseLocalModificationKey;
 #endif
 
@@ -33,19 +33,19 @@ NS_SWIFT_NAME(RadBlockDatabase)
 
 @property(nonatomic,readonly) NSURL *fileURL;
 
-#pragma mark - Whitelist
+#pragma mark - allowList
 
-- (void)whitelistEntryForDomain:(NSString *)domain completionHandler:(void(^)(RBWhitelistEntry *__nullable, NSError *__nullable))completionHandler;
-- (void)writeWhitelistEntryForDomain:(NSString *)domain usingBlock:(nullable void(^)(RBMutableWhitelistEntry*, BOOL*))block completionHandler:(void(^)(RBWhitelistEntry *__nullable, NSError *__nullable))completionHandler;
+- (void)allowlistEntryForDomain:(NSString *)domain completionHandler:(void(^)(RBAllowlistEntry *__nullable, NSError *__nullable))completionHandler;
+- (void)writeAllowlistEntryForDomain:(NSString *)domain usingBlock:(nullable void(^)(RBMutableAllowlistEntry*, BOOL*))block completionHandler:(void(^)(RBAllowlistEntry *__nullable, NSError *__nullable))completionHandler;
 
-- (void)removeWhitelistEntryForDomain:(NSString *)domain completionHandler:(void(^)(NSError *__nullable))completionHandler;
-- (void)removeWhitelistEntriesForDomains:(NSArray *)domains completionHandler:(void(^)(NSError *__nullable))completionHandler;
+- (void)removeAllowlistEntryForDomain:(NSString *)domain completionHandler:(void(^)(NSError *__nullable))completionHandler;
+- (void)removeAllowlistEntriesForDomains:(NSArray *)domains completionHandler:(void(^)(NSError *__nullable))completionHandler;
 
-typedef NS_ENUM(short, RBWhitelistEntrySortOrder) {
-    RBWhitelistEntrySortOrderDomain,
-    RBWhitelistEntrySortOrderCreateDate
+typedef NS_ENUM(short, RBAllowlistEntrySortOrder) {
+    RBAllowlistEntrySortOrderDomain,
+    RBAllowlistEntrySortOrderCreateDate
 };
-- (void)whitelistEntryEnumeratorForGroup:(nullable NSString *)group domain:(nullable NSString *)domain sortOrder:(RBWhitelistEntrySortOrder)sortOrder completionHandler:(void(^)(NSEnumerator <RBWhitelistEntry*>*__nullable, NSError*__nullable))completionHandler;
+- (void)allowlistEntryEnumeratorForGroup:(nullable NSString *)group domain:(nullable NSString *)domain sortOrder:(RBAllowlistEntrySortOrder)sortOrder completionHandler:(void(^)(NSEnumerator <RBAllowlistEntry*>*__nullable, NSError*__nullable))completionHandler;
 
 #pragma mark - Stats
 

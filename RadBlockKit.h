@@ -14,4 +14,4 @@
 #import "RBKVO.h"
 #import "RBUtils.h"
 #import "RBDatabase.h"
-#import "RBWhitelistEntry.h"
+#import "RBAllowlistEntry.h"
