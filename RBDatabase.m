@@ -57,7 +57,7 @@
         return nil;
     
     _fileURL = fileURL;
-    _q = dispatch_queue_create("net.youngdynasty.net.radblock.database", DISPATCH_QUEUE_SERIAL_WITH_AUTORELEASE_POOL);//DISPATCH_QUEUE_CONCURRENT_WITH_AUTORELEASE_POOL);
+    _q = dispatch_queue_create("net.youngdynasty.net.radblock.database", DISPATCH_QUEUE_SERIAL_WITH_AUTORELEASE_POOL);
     _readySemaphore = dispatch_semaphore_create(1);
     
     __weak RBDatabase *weakSelf = self;
