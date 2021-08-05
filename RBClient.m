@@ -41,7 +41,7 @@
     _cloudKitEnabled = YES;
 
     NSString *apiUrlString = NSProcessInfo.processInfo.environment[@"RADBLOCK_API_URL"];
-    _url = apiUrlString != nil ? [NSURL URLWithString:apiUrlString] : [NSURL URLWithString:@"https://radblock.app/api"];
+    _url = apiUrlString != nil ? [NSURL URLWithString:apiUrlString] : [NSURL URLWithString:@"https://radblock.beamapp.co"];
     _session = [NSURLSession sessionWithConfiguration:self._sessionConfiguration ?: NSURLSessionConfiguration.ephemeralSessionConfiguration delegate:self delegateQueue:nil];
     
     @try {
