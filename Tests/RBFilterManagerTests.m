@@ -72,7 +72,7 @@
         XCTAssertNil(err);
         [sync fulfill];
     }];
-    [self waitForExpectationsWithTimeout:1 handler:nil];
+    [self waitForExpectationsWithTimeout:2 handler:nil];
     
     XCTAssertEqual(_manager.filterRuleURLs.count, filters.count);
 }
