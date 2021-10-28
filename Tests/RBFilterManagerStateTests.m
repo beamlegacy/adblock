@@ -61,9 +61,9 @@
 - (void)testNextSynchronizeDateIntervals {
     XCTAssertNotNil(_state.nextSynchronizeDate);
     XCTAssertLessThanOrEqual([_state.nextSynchronizeDate timeIntervalSinceNow], 0);
-    
-    _state.lastSynchronizeAttemptDate = [NSDate date];
-    _state.lastSynchronizeDate = [NSDate date];
+
+    _state.lastSynchronizeAttemptDate = [NSDate dateWithTimeIntervalSince1970: 0];
+    _state.lastSynchronizeDate = [NSDate dateWithTimeIntervalSince1970: 0];
 
     NSDictionary *intervalDict = @{
         @(RBSynchronizeIntervalDisabled): @(-1),
@@ -96,7 +96,7 @@
 
 - (void)testNextSynchronizeDateCooldown {
     _state._cooldownInterval = 500;
-    _state.lastSynchronizeAttemptDate = [NSDate date];
+    _state.lastSynchronizeAttemptDate = [NSDate dateWithTimeIntervalSince1970: 0];
     
     for (int i = 1; i < 5; i++) {
         _state.numberOfFailuresSinceLastSynchronize = i;
