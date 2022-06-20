@@ -38,12 +38,23 @@
     if (self == nil)
         return nil;
 
-    _cloudKitEnabled = YES;
+    _cloudKitEnabled = NO;
 
     NSString *apiUrlString = NSProcessInfo.processInfo.environment[@"RADBLOCK_API_URL"];
     _url = apiUrlString != nil ? [NSURL URLWithString:apiUrlString] : [NSURL URLWithString:@"https://radblock.beamapp.co"];
     _session = [NSURLSession sessionWithConfiguration:self._sessionConfiguration ?: NSURLSessionConfiguration.ephemeralSessionConfiguration delegate:self delegateQueue:nil];
-    
+
+//    [self setupCloudKit];
+
+    _downloadQueue = dispatch_queue_create("net.youngdynasty.radblock.filter.download", DISPATCH_QUEUE_SERIAL_WITH_AUTORELEASE_POOL);
+
+    return self;
+}
+
+
+- (void)setupCloudKit {
+    _cloudKitEnabled = YES;
+
     @try {
         _database = [[CKContainer containerWithIdentifier:@"iCloud.net.youngdynasty.radblock"] publicCloudDatabase];
     } @catch (NSException *exception) {
@@ -55,10 +66,6 @@
 
         _cloudKitEnabled = NO;
     }
-    
-    _downloadQueue = dispatch_queue_create("net.youngdynasty.radblock.filter.download", DISPATCH_QUEUE_SERIAL_WITH_AUTORELEASE_POOL);
-    
-    return self;
 }
 
 #pragma mark -
@@ -291,18 +298,18 @@ static NSError *_errorFromJSONResponse(NSURLResponse *response) {
 - (NSProgress *)_decompressRecords:(NSArray<CKRecord*>*)records outputDirectory:(NSURL *)outputDirectoryURL completionHandler:(void(^)(RBFilterGroupRules*, NSError *))completionHandler {
     __block NSMutableDictionary *results = [NSMutableDictionary dictionaryWithCapacity:records.count];
     __block NSError *error = nil;
-    
+
     NSProgress *progress = [NSProgress progressWithTotalUnitCount:records.count + 1]; // make sure our progress is never indeterminate
     dispatch_group_t group = dispatch_group_create();
-    
+
     // Use a temporary directory so we can work atomically (we may otherwise produce corrupt output if canceled/errored while running)
     NSURL *tempDirectoryURL = RBCreateTemporaryDirectory(&error);
-    
+
     for (CKRecord *record in records) {
         if (error != nil) {
             break;
         }
-        
+
         dispatch_group_async(group, _downloadQueue, ^{
             if (error != nil) {
                 return;
@@ -310,16 +317,16 @@ static NSError *_errorFromJSONResponse(NSURLResponse *response) {
                 error = [NSError errorWithDomain:CKErrorDomain code:CKErrorOperationCancelled userInfo:nil];
                 return;
             }
-            
+
             RBFilter *filter = [[RBFilter alloc] initWithRecord:record];
             CKAsset *asset = RBKindOfClassOrNil(CKAsset, record[@"asset"]);
             NSString *compression = RBKindOfClassOrNil(NSString, record[@"compression"]);
-            
+
             if (filter == nil || asset == nil || asset.fileURL == nil) {
                 NSLog(@"WARNING: Could not create filter / asset from record: %@", record);
             } else {
                 NSURL *outputURL = [tempDirectoryURL URLByAppendingPathComponent:filter.uniqueIdentifier];
-                
+
                 if (compression == nil || compression.length == 0) {
                     [[NSFileManager defaultManager] copyItemAtURL:asset.fileURL toURL:outputURL error:&error];
                 } else if ([compression isEqualToString:@"deflate"]) {
@@ -335,7 +342,7 @@ static NSError *_errorFromJSONResponse(NSURLResponse *response) {
                         NSLocalizedDescriptionKey: [NSString stringWithFormat:@"Unrecognized compression algorithm: %@", compression],
                     }];
                 }
-                
+
                 // Check MD5 hash
                 if (error == nil && filter.md5 != nil) {
                     NSString *md5 = [RBDigest MD5HashOfFileURL:outputURL error:&error];
@@ -351,18 +358,18 @@ static NSError *_errorFromJSONResponse(NSURLResponse *response) {
                     results[filter] = outputURL;
                 }
             }
-            
+
             progress.completedUnitCount++;
         });
     }
-    
+
     dispatch_group_notify(group, _downloadQueue, ^{
         progress.completedUnitCount++;
-        
+
         // Move / normalize results
         if (error == nil) {
             NSMutableDictionary *normalizedResults = [NSMutableDictionary dictionaryWithCapacity:results.count];
-            
+
             for (RBFilter *filter in results) {
                 NSURL *outputURL = [outputDirectoryURL URLByAppendingPathComponent:filter.uniqueIdentifier];
                 if (!RBMoveFileURL(results[filter], outputURL, &error)) {
@@ -370,42 +377,42 @@ static NSError *_errorFromJSONResponse(NSURLResponse *response) {
                 }
                 normalizedResults[filter] = outputURL;
             }
-            
+
             results = normalizedResults;
         }
-        
+
         // Remove temporary directory
         if (tempDirectoryURL != nil) {
             [[NSFileManager defaultManager] removeItemAtURL:tempDirectoryURL error:NULL];
         }
-        
+
         completionHandler(error == nil ? [results copy] : nil, error);
     });
-    
+
     return progress;
 }
 
 - (NSProgress *)_performQuery:(CKQuery *)query completionHandler:(void (^)(NSArray<CKRecord *> *, NSError *))completionHandler {
     NSProgress *progress = [NSProgress progressWithTotalUnitCount:1];
     CKQueryOperation *operation = [[CKQueryOperation alloc] initWithQuery:query];
-    
+
     progress.cancellationHandler = ^{
         [operation cancel];
     };
-    
+
     NSMutableArray *results = [NSMutableArray array];
-    
+
     operation.recordFetchedBlock = ^(CKRecord *record) {
         [results addObject:record];
     };
-    
+
     operation.queryCompletionBlock = ^(CKQueryCursor *cursor, NSError *error) {
         progress.completedUnitCount++;
         completionHandler(results, error);
     };
-    
+
     [_database addOperation:operation];
-    
+
     return progress;
 }
 
