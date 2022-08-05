@@ -12,6 +12,9 @@
 
 @implementation RBDigest
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+
 + (NSString *)MD5HashOfData:(NSData *)data {
     CC_MD5_CTX ctx;
     CC_MD5_Init(&ctx);
@@ -60,5 +63,7 @@ static NSString* _MD5HexString(unsigned char digest[CC_MD5_DIGEST_LENGTH]) {
     
     return [ret copy];
 }
+
+#pragma clang diagnostic pop
 
 @end
