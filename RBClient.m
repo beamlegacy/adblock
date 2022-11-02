@@ -402,9 +402,15 @@ static NSError *_errorFromJSONResponse(NSURLResponse *response) {
 
     NSMutableArray *results = [NSMutableArray array];
 
+#if TARGET_OS_OSX && __MAC_OS_X_VERSION_MIN_REQUIRED < 120000
     operation.recordFetchedBlock = ^(CKRecord *record) {
         [results addObject:record];
     };
+#else
+    operation.recordMatchedBlock = ^(CKRecordID *recordID, CKRecord *record, NSError *error) {
+        [results addObject:record];
+    };
+#endif
 
     operation.queryCompletionBlock = ^(CKQueryCursor *cursor, NSError *error) {
         progress.completedUnitCount++;
